@@ -17,7 +17,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # By default template uses dynamically linked union-api target to avoid compatibility problems.
 # If you want to produce a standalone plugin, set this option to OFF
-set(GENERATE_UNION_API_DLL ON)
+set(GENERATE_UNION_API_DLL OFF)
 
 # By default template generates .vdf with the .dll and files form \vdf\_Work and \vdf\System
 # If you want to produce only the .dll, set this option to OFF
@@ -91,3 +91,10 @@ if (GENERATE_VDF)
 endif()
 
 add_subdirectory(dependencies)
+
+
+
+add_custom_command(TARGET UnionPlugin POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		"${PROJECT_SOURCE_DIR}/out/build/MP-Release/UnionPlugin.dll"
+		"E:/GAMES/G2_MENU_TEST/System/Autorun/UnionPlugin.dll")

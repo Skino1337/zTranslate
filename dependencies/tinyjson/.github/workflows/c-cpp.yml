@@ -1,0 +1,116 @@
+name: C/C++ CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  warnings:
+    name: Build Warnings as Errors
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: build basic with warnings
+      run: g++ -std=c++20 -Wall -Wextra -Werror -O3 src/TinyJSON.cpp example/basic_parse.cpp -o basic_parse
+
+    - name: run basic with warnings
+      run: |
+        set +e
+        ./basic_parse
+
+  build20:
+    name: Build C++ 20
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: build basic
+      run: g++ -std=c++20 src/TinyJSON.cpp example/basic_parse.cpp -o basic_parse
+
+    - name: run basic
+      run: |
+        set +e
+        ./basic_parse
+
+    - name: build options
+      run: g++ -std=c++20 src/TinyJSON.cpp example/options.cpp -o options
+
+    - name: run otpions
+      run: |
+        set +e
+        ./options
+
+    - name: user literals
+      run: g++ -std=c++20 src/TinyJSON.cpp example/user_literals.cpp -o user_literals
+
+    - name: run user literals
+      run: |
+        set +e
+        ./options
+      
+  build11:
+    name: Build C++ 11
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: build options c++11
+      run: g++ -std=c++11 src/TinyJSON.cpp example/options11.cpp -o options11
+
+    - name: run otpions11  
+      run: |
+        set +e
+        ./options11
+
+  build_array:
+    name: Build array
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: build custom array c++11
+      run: g++ -std=c++11 -D TJ_INCLUDE_STDVECTOR=0  -Wall -Wextra -Werror -O3 src/TinyJSON.cpp example/basic_parse.cpp -o basic_parse
+
+    - name: run custom array  
+      run: |
+        set +e
+        ./basic_parse        
+
+    - name: build std::vector c++11
+      run: g++ -std=c++11 -D TJ_INCLUDE_STDVECTOR=1  -Wall -Wextra -Werror -O3 src/TinyJSON.cpp example/basic_parse.cpp -o basic_parse
+
+    - name: run std::vector
+      run: |
+        set +e
+        ./basic_parse
+
+  fast_dump:
+    name: Fast dump test
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: build fast dump c++11
+      run: g++ -std=c++11 -Wall -Wextra -Werror -O3 src/TinyJSON.cpp example/fast_dump.cpp -o fast_dump
+
+    - name: run fast dump c++11
+      run: |
+        set +e
+        ./fast_dump        
+
+    - name: build fast dump c++20
+      run: g++ -std=c++20 -Wall -Wextra -Werror -O3 src/TinyJSON.cpp example/fast_dump.cpp -o fast_dump
+
+    - name: run fast dump c++20
+      run: |
+        set +e
+        ./fast_dump        
+  
