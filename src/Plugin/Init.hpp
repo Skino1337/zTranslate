@@ -37,6 +37,7 @@ namespace GOTHIC_NAMESPACE
     };
 
     // std::ofstream log;
+
     std::filesystem::path current_folder_path;
     std::filesystem::path plugin_ini_file_path = "System/zTranslate.ini";
     std::filesystem::path translate_file_path = "translate.json";
@@ -55,7 +56,7 @@ namespace GOTHIC_NAMESPACE
         // log.open("log.txt", std::ios::app);
         // while (!log.is_open())
         //     std::this_thread::sleep_for(std::chrono::seconds(1));
-
+        //
         // log << std::unitbuf; // Enable auto-flushing
     }
 
@@ -401,7 +402,5 @@ namespace GOTHIC_NAMESPACE
             text_language_for_item += text_language_for_item.empty() ? "" : "|";
             text_language_for_item += language_data.language_name;
         }
-
-        // log << "text_language_for_item: " << text_language_for_item << std::endl;
     }
 }

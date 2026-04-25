@@ -109,6 +109,17 @@ namespace GOTHIC_NAMESPACE
         return tokens;
     }
 
+    bool string_have_substring_case_insensitive(std::string search_string, std::string search_substring)
+    {
+        for (char & c : search_string)
+            c = std::tolower((unsigned char)c);
+
+        for (char & c : search_substring)
+            c = std::tolower((unsigned char)c);
+
+        return search_string.find(search_substring) != std::string::npos;
+    }
+
     bool string_compare_case_insensitive(const std::string & a, const std::string & b)
     {
         const bool is_length_equals = a.length() == b.length();
