@@ -5,12 +5,15 @@ Plugin for translate gothic games.
 # Requirements
 
 Union 1.0m
+Some plugin for change fonts, like this: https://github.com/SaiyansKing/Gothic-TTF
 
 # Plugin installation
 
 Just placing it in `[GAME_FOLDER]/System/autorun` directory.
 
 # Configuration
+
+In TTF plugin, need change encoding for utf-8.
 
 In path `[GAME_FOLDER]/System/zTranslate.ini` located plugin config file.
 In path `[GAME_FOLDER]/zTranslate` located plugin translates folder.
