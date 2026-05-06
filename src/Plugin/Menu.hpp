@@ -11,7 +11,6 @@ namespace GOTHIC_NAMESPACE
     zCMenuItem* main_menu_item_exit = nullptr;
     zCMenuItem* menu_item_language_text_choice = nullptr;
     zCMenuItem* menu_item_language_audio_choice = nullptr;
-    bool is_setup_toggle = false;
 
     std::string get_menu_item_flags(const zCMenuItem* menu_item)
     {
@@ -328,8 +327,8 @@ namespace GOTHIC_NAMESPACE
             return;
 
         menu_item_language->SetName("MENUITEM_LANGUAGE"); // also change id
-        menu_item_language->SetText(selected_language_data.menu_language.c_str(), 0, 0);
-        menu_item_language->m_parText[1] = selected_language_data.menu_language_description.c_str();
+        menu_item_language->SetText(selected_text_language_data->text_data.menu_language.c_str(), 0, 0);
+        menu_item_language->m_parText[1] = selected_text_language_data->text_data.menu_language_description.c_str();
         menu_item_language->m_parPosY = menu_item_credits_y + menu_y_offset;
         menu_item_language->m_parOnSelAction[0] = SEL_ACTION_STARTMENU;
         menu_item_language->m_parOnSelAction_S[0] = MENU_LANGUAGE.c_str();
@@ -362,14 +361,17 @@ namespace GOTHIC_NAMESPACE
         //     log << "MENU_OPT_AUDIO not found" << std::endl;
         // }
 
-
-
         zCMenu* menu_language = zCMenu::GetByName(MENU_LANGUAGE.c_str());
         if (menu_language != nullptr)
             return;
 
         menu_language = new zCMenu();
         if (menu_language == nullptr)
+            return;
+
+        menu_item_language_text_choice = zCMenuItem::GetByName(MENUITEM_LANGUAGE_TEXT_CHOICE.c_str());
+        menu_item_language_audio_choice = zCMenuItem::GetByName(MENUITEM_LANGUAGE_AUDIO_CHOICE.c_str());
+        if (menu_item_language_text_choice && menu_item_language_audio_choice)
             return;
 
         menu_language->SetByScript("MENU_OPT_AUDIO");
@@ -477,25 +479,26 @@ namespace GOTHIC_NAMESPACE
         // ---
 
         menu_item_headline->SetName("MENUITEM_LANGUAGE_HEADLINE");
-        menu_item_headline->SetText(selected_language_data.menu_language.c_str(), 0, 0);
+        menu_item_headline->SetText(selected_text_language_data->text_data.menu_language.c_str(), 0, 0);
 
         menu_item_back->SetName("MENUITEM_LANGUAGE_BACK");
-        menu_item_back->SetText(selected_language_data.menu_language_back.c_str(), 0, 0);
+        menu_item_back->SetText(selected_text_language_data->text_data.menu_language_back.c_str(), 0, 0);
 
         // ---
 
         if (menu_item_language_text_label)
         {
             menu_item_language_text_label->SetName("MENUITEM_LANGUAGE_TEXT");
-            menu_item_language_text_label->SetText(selected_language_data.menu_language_select_text_language.c_str(), 0, 0);
-            menu_item_language_text_label->m_parText[1] = selected_language_data.menu_language_select_text_language_description.c_str();
+            menu_item_language_text_label->SetText(selected_text_language_data->text_data.menu_language_select_text_language.c_str(), 0, 0);
+            menu_item_language_text_label->m_parText[1] = selected_text_language_data->text_data.menu_language_select_text_language_description.c_str();
             menu_item_language_text_label->m_parPosY = min_y;
         }
 
         if (menu_item_language_text_choice)
         {
             menu_item_language_text_choice->SetName(MENUITEM_LANGUAGE_TEXT_CHOICE.c_str());
-            menu_item_language_text_choice->SetText(text_language_for_item.c_str(), 0, 0);
+            // menu_item_language_text_choice->SetText(text_language_for_item.c_str(), 0, 0);
+            menu_item_language_text_choice->SetText(language_data_map[text_choice_index].text_data.language_name.c_str() , 0, 0);
             menu_item_language_text_choice->m_parPosY = min_y + 120;
             menu_item_language_text_choice->m_parDimX = 2000;
             menu_item_language_text_choice->m_parOnChgSetOption = "";
@@ -504,26 +507,24 @@ namespace GOTHIC_NAMESPACE
                 menu_item_language_text_choice->m_parOnEventAction[i] = 0;
         }
 
+        zCMenuItemChoice* menu_item_choice_text_language_choice = nullptr;
         if (menu_item_language_text_choice)
         {
-            auto menu_item_choice_language_text_choice = dynamic_cast<zCMenuItemChoice*>(menu_item_language_text_choice);
-            if (menu_item_choice_language_text_choice)
+            menu_item_choice_text_language_choice = dynamic_cast<zCMenuItemChoice*>(menu_item_language_text_choice);
+            if (menu_item_choice_text_language_choice)
             {
+                menu_item_choice_text_language_choice->option = 0;
+                menu_item_choice_text_language_choice->optionStart = 0;
+                menu_item_choice_text_language_choice->curStep = 0;
+
                 if (menu_item_language_text_label)
                 {
-                    if (menu_item_choice_language_text_choice->GetNumOptions() < 2)
+                    if (text_language_for_item_vec.size() < 2)
                     {
                         menu_item_language_text_label->m_parItemFlags |= IT_ONLY_IN_GAME;
                         menu_item_language_text_label->m_parItemFlags |= IT_ONLY_OUT_GAME;
                     }
                 }
-
-                is_setup_toggle = true;
-                for (auto i = menu_item_choice_language_text_choice->option; i < text_choice_option_start; ++i)
-                {
-                    menu_item_choice_language_text_choice->ToggleValue(1, 0);
-                }
-                is_setup_toggle = false;
             }
         }
 
@@ -532,15 +533,17 @@ namespace GOTHIC_NAMESPACE
         if (menu_item_language_audio_label)
         {
             menu_item_language_audio_label->SetName("MENUITEM_LANGUAGE_AUDIO");
-            menu_item_language_audio_label->SetText(selected_language_data.menu_language_select_audio_language.c_str(), 0, 0);
-            menu_item_language_audio_label->m_parText[1] = selected_language_data.menu_language_select_audio_language_description.c_str();
+            menu_item_language_audio_label->SetText(selected_text_language_data->text_data.menu_language_select_audio_language.c_str(), 0, 0);
+            menu_item_language_audio_label->m_parText[1] = selected_text_language_data->text_data.menu_language_select_audio_language_description.c_str();
             menu_item_language_audio_label->m_parPosY = min_y + 550 * 1;
         }
 
+        zCMenuItemChoice* menu_item_choice_audio_language_choice = nullptr;
         if (menu_item_language_audio_choice)
         {
             menu_item_language_audio_choice->SetName(MENUITEM_LANGUAGE_AUDIO_CHOICE.c_str());
-            menu_item_language_audio_choice->SetText(audio_language_for_item.c_str(), 0, 0);
+            // menu_item_language_audio_choice->SetText(audio_language_for_item.c_str(), 0, 0);
+            menu_item_language_audio_choice->SetText(language_data_map[audio_choice_index].text_data.language_name.c_str() , 0, 0);
             menu_item_language_audio_choice->m_parPosY = min_y + 120 + 550 * 1;
             menu_item_language_audio_choice->m_parDimX = 2000;
             menu_item_language_audio_choice->m_parOnChgSetOption = "";
@@ -550,24 +553,21 @@ namespace GOTHIC_NAMESPACE
 
             if (menu_item_language_audio_choice)
             {
-                auto menu_item_choice_audio_language_choice = dynamic_cast<zCMenuItemChoice*>(menu_item_language_audio_choice);
+                menu_item_choice_audio_language_choice = dynamic_cast<zCMenuItemChoice*>(menu_item_language_audio_choice);
                 if (menu_item_choice_audio_language_choice)
                 {
+                    menu_item_choice_audio_language_choice->option = 0;
+                    menu_item_choice_audio_language_choice->optionStart = 0;
+                    menu_item_choice_audio_language_choice->curStep = 0;
+
                     if (menu_item_language_audio_label)
                     {
-                        if (menu_item_choice_audio_language_choice->GetNumOptions() < 2)
+                        if (audio_language_for_item_vec.size() < 2)
                         {
                             menu_item_language_audio_label->m_parItemFlags |= IT_ONLY_IN_GAME;
                             menu_item_language_audio_label->m_parItemFlags |= IT_ONLY_OUT_GAME;
                         }
                     }
-
-                    is_setup_toggle = true;
-                    for (auto i = menu_item_choice_audio_language_choice->option; i < audio_choice_option_start; ++i)
-                    {
-                        menu_item_choice_audio_language_choice->ToggleValue(1, 0);
-                    }
-                    is_setup_toggle = false;
                 }
             }
         }
@@ -588,30 +588,35 @@ namespace GOTHIC_NAMESPACE
         menu_language->m_listItems = list_menu_items;
     }
 
-    void menu_item_toggle_value(zCMenuItemChoice* menu_item_choice, int v1, int v2)
+    void menu_item_toggle_value(zCMenuItemChoice* menu_item_choice, int step, int v2)
     {
-        if (menu_item_choice == nullptr)
-            return;
-
-        if (is_setup_toggle)
-            return;
-
-        auto index = menu_item_choice->option;
-
         std::string toggled_menu_item_name = (const char*)menu_item_choice->GetName();
         if (toggled_menu_item_name == MENUITEM_LANGUAGE_TEXT_CHOICE)
         {
-            change_language_from_options(index);
+            int index = text_choice_index + step;
+
+            if (index >= static_cast<int>(text_language_for_item_vec.size()))
+                index = 0;
+
+            if (index < 0)
+                index = static_cast<int>(text_language_for_item_vec.size()) - 1;
+
+            if (change_language_text_from_options(index))
+                menu_item_language_text_choice->SetText(language_data_map[text_choice_index].text_data.language_name.c_str() , 0, 0);
         }
+        else if (toggled_menu_item_name == MENUITEM_LANGUAGE_AUDIO_CHOICE)
+        {
+            int index = audio_choice_index + step;
 
-        std::string option_name = (const char*)menu_item_choice->GetStringByOption();
+            if (index >= static_cast<int>(audio_language_for_item_vec.size()))
+                index = 0;
 
-        // log << "menu_item_toggle_value, toggled_menu_item_name: " << toggled_menu_item_name  << ", option: " << option_name << std::endl;
-        // log << "menu_item_toggle_value, v1: " << v1  << ", v2: " << v2 << std::endl;
-        // log << "menu_item_choice option: " << menu_item_choice->option << std::endl;
-        // log << "menu_item_choice optionStart: " << menu_item_choice->optionStart << std::endl;
-        // log << "menu_item_choice curStep: " << menu_item_choice->curStep << std::endl;
-        // log.flush();
+            if (index < 0)
+                index = static_cast<int>(audio_language_for_item_vec.size()) - 1;
+
+            if (change_language_audio_from_options(index))
+                menu_item_language_audio_choice->SetText(language_data_map[audio_choice_index].text_data.language_name.c_str() , 0, 0);
+        }
     }
 
     void menu_loop()

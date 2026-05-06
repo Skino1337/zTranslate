@@ -103,3 +103,8 @@ add_custom_command(TARGET UnionPlugin POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different
 		"${PROJECT_SOURCE_DIR}/out/build/MP-Release/UnionPlugin.dll"
 		"E:/SteamLibrary/steamapps/common/TheChroniclesOfMyrtana/system/Autorun/UnionPlugin.dll")
+
+add_custom_command(TARGET UnionPlugin POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+		"${PROJECT_SOURCE_DIR}/out/build/MP-Release/UnionPlugin.dll"
+		"E:/GAMES/GOTHIC_MODS/ODYSSEY/ODYSSEY_DE/System/Autorun/UnionPlugin.dll")

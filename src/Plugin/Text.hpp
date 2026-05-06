@@ -371,26 +371,19 @@ namespace GOTHIC_NAMESPACE
 		})},
 	};
 
-	// fix via return from func
+	struct AudionData
+	{
+		std::string info_instance_name;
+		std::string info_npc_class_name;
+		std::string info_information_name;
+		std::string npc_name;
 
-	// USEMELEEWEAPONRECIPE
+		AudionData() = default;
+	};
 
-	// func string CS2C(var string S1, var string S2, var int COUNT) {
-	// var result_string = CONCATSTRINGS(S1, S2);
-	// for (count)
-	// 		result_string = CONCATSTRINGS(resulkt_string, S2);
-	//  return result_string
-	// };
-
-	// func string CS2(var string S1, var string S2) {
-	// 	return CONCATSTRINGS(S1, S2);
-	// };
-
-	// func string CS3(var string S1, var string S2, var string S3) {
-	// 	return CS2(CS2(S1, S2), S3);
-	// };
-
-	// чекать по "50", "75"
+	std::map<std::string, AudionData> audio_data_map = {};
+	std::map<std::string, std::string> dialog_data_map = {};
+	std::map<std::string, std::string> npc_name_map = {};
 
 	struct SourceData
 	{
@@ -427,6 +420,7 @@ namespace GOTHIC_NAMESPACE
 
 	std::deque<StackVariableTrace> pushed_stack_variable_trace_vector = {};
 	std::unordered_map<int64_t, StackVariableTrace> moved_variable_value_trace_map;
+	std::unordered_map<int64_t, std::vector<StackVariableTrace>> moved_variable_value_trace_stack_vector_map;
 
 	std::vector<std::string> function_trace_tree_vector = {};
 
@@ -972,7 +966,7 @@ namespace GOTHIC_NAMESPACE
 		TinyJSON::parse_options options = {};
 		options.throw_exception = false;
 
-		auto json = TinyJSON::TJ::parse_file(selected_language_data.full_path_to_translate_file.c_str(), options);
+		auto json = TinyJSON::TJ::parse_file(selected_text_language_data->text_data.full_path_to_translate_file.c_str(), options);
 		if (!json || !json->is_object())
 		{
 			// log << "cannot open JSON file, or json file is not valid, path: " << selected_language_data.full_path_to_translate_file.c_str() << std::endl;
@@ -1343,7 +1337,7 @@ namespace GOTHIC_NAMESPACE
 			write_menu(json_menu_array, json_settings["script_encoding"]);
 			json->set("menu", json_menu_array);
 
-			TinyJSON::TJ::write_file(selected_language_data.full_path_to_translate_file.c_str(), *json, options);
+			TinyJSON::TJ::write_file(selected_text_language_data->text_data.full_path_to_translate_file.c_str(), *json, options);
 
 			return;
 		}
@@ -1507,7 +1501,7 @@ namespace GOTHIC_NAMESPACE
 		write_menu(json_menu_array, json_settings["script_encoding"]);
 		json->set("menu", json_menu_array);
 
-		TinyJSON::TJ::write_file(selected_language_data.full_path_to_translate_file.c_str(), *json, options);
+		TinyJSON::TJ::write_file(selected_text_language_data->text_data.full_path_to_translate_file.c_str(), *json, options);
 	}
 
 	void parse_stack_for_string_in_arguments(byte* bytecode, uint64_t address_begin, uint64_t argument_count)
@@ -1867,6 +1861,15 @@ namespace GOTHIC_NAMESPACE
 		std::string variable_symbol_name = (const char*)argument_symbol->name;
 		std::string variable_symbol_text = (const char*)argument_symbol->stringdata[stack_variable.array_index];
 
+		// for audio
+		if (source_data.function_name == "C_NPC" && source_data.argument_name == "NAME")
+		{
+			if (!variable_symbol_text.empty())
+				npc_name_map[source_data.section_name] = variable_symbol_text;
+		}
+
+		// log << "source_data: " << source_data.
+
 		// @TODO: добавить что если это возов функции где стройка аргумент, и функции нет в перечне, то добалять источник к этой строке-аргумету
 
 		std::string function_trace_tree_string;
@@ -2062,6 +2065,11 @@ namespace GOTHIC_NAMESPACE
 
 					if (called_fwta.translated_argument_vector[i].is_translated == false)
 						continue;
+
+					// if (moved_variable_value_trace_stack_vector_map.contains(prepared_argument_vector[i].stack_variable.value))
+					// {
+					// 	log << "found moved stack: " << prepared_argument_vector[i].to_string() << std::endl;
+					// }
 
 					// need a copy!!!
 					auto stack_variable_vector = prepared_argument_vector[i].extra_stack_variable_vector;
@@ -2603,6 +2611,40 @@ namespace GOTHIC_NAMESPACE
 					k++;
 				}
 
+				// for audio
+
+				if (function_name == "AI_OUTPUT" && prepared_argument_vector.size() >= 3)
+				{
+					for (auto & [_, audio_data] : audio_data_map)
+					{
+						if (section_stack_data.name == audio_data.info_information_name)
+						{
+							auto token_dialog_value = prepared_argument_vector[2].stack_variable.value;
+							if (token_dialog_value <= 0)
+								break;
+
+							std::string npc_name = "_PLAYER";
+							std::string string_dialog = (const char*)loc_parser->symtab.table[token_dialog_value]->stringdata[0];
+
+							if (prepared_argument_vector[0].stack_variable.name == "SELF")
+								npc_name = audio_data.info_npc_class_name;
+
+							dialog_data_map[string_dialog] = npc_name;
+
+							// log << "AI_OUTPUT who talk: " << npc_name << std::endl;
+							// log << "AI_OUTPUT ";
+							// log << prepared_argument_vector[0].stack_variable.name << " ";
+							// log << prepared_argument_vector[1].stack_variable.name << " ";
+							// log << string_dialog << std::endl;
+							// log.flush();
+
+							break;
+						}
+					}
+				}
+
+				// for audio
+
 				// // manage !!!
 				// if (function_with_translated_argument_map.count(function_name))
 				// {
@@ -2776,8 +2818,76 @@ namespace GOTHIC_NAMESPACE
 					last_function_name = "";
 				}
 
+				// for voice
+				if (is_section_instance && token == zPAR_OP_IS)
+				{
+					auto & svt_f = pushed_stack_variable_trace_vector[pushed_stack_variable_trace_vector.size() - 2];
+					auto & svt_t = pushed_stack_variable_trace_vector[pushed_stack_variable_trace_vector.size() - 1];
+
+					if (svt_t.stack_variable.name == "C_INFO.NPC")
+					{
+						token_symbol = loc_parser->symtab.table[svt_f.stack_variable.value];
+						std::string token_name = token_symbol->name.ToChar();
+
+						if (!audio_data_map.contains(section_stack_data.name))
+						{
+							auto audio_data = AudionData();
+							audio_data.info_instance_name = section_stack_data.name;
+							audio_data.info_npc_class_name = token_name;
+
+							audio_data_map[section_stack_data.name] = audio_data;
+						}
+						else
+						{
+							audio_data_map[section_stack_data.name].info_npc_class_name = token_name;
+						}
+
+						// log << "C_INFO.NPC: " << svt_f.stack_variable.to_string() << std::endl;
+						// log << "C_INFO.NPC: " << section_stack_data.name << std::endl;
+						// log << "C_INFO.NPC: " << token_name << std::endl;
+						// log.flush();
+					}
+				}
+
 				pushed_stack_variable_trace_vector.pop_back();
 				pushed_stack_variable_trace_vector.pop_back();
+
+				token_value = 0;
+				token_symbol = nullptr;
+			}
+			else if (token == zPAR_TOK_ASSIGNFUNC) // 0x48
+			{
+				// for voice
+				if (is_section_instance)
+				{
+					auto & svt_f = pushed_stack_variable_trace_vector[pushed_stack_variable_trace_vector.size() - 2];
+					auto & svt_t = pushed_stack_variable_trace_vector[pushed_stack_variable_trace_vector.size() - 1];
+
+					if (svt_t.stack_variable.name == "C_INFO.INFORMATION")
+					{
+						token_symbol = loc_parser->symtab.table[svt_f.stack_variable.value];
+						std::string token_name = token_symbol->name.ToChar();
+
+						if (!audio_data_map.contains(section_stack_data.name))
+						{
+							auto audion_data = AudionData();
+							audion_data.info_information_name = token_name;
+
+							audio_data_map[section_stack_data.name] = audion_data;
+						}
+						else
+						{
+							audio_data_map[section_stack_data.name].info_information_name = token_name;
+						}
+
+						// log << "C_INFO.INFORMATION: " << svt_f.stack_variable.to_string() << std::endl;
+						// log << "C_INFO.INFORMATION: " << section_stack_data.name << std::endl;
+						// log << "C_INFO.INFORMATION: " << token_name << std::endl;
+						// log.flush();
+					}
+				}
+
+				// NO POP???
 
 				token_value = 0;
 				token_symbol = nullptr;
@@ -2798,7 +2908,13 @@ namespace GOTHIC_NAMESPACE
 				int64_t value_f = svt_f.stack_variable.value;
 				int64_t value_t = svt_t.stack_variable.value;
 
-				moved_variable_value_trace_map[value_t] = svt_f;
+				// moved_variable_value_trace_map[value_t] = svt_f;
+				// moved_variable_value_trace_stack_vector_map[value_t].push_back(svt_f);
+				// log << "add mov var from: " << svt_f.to_string() << std::endl;
+				// log << "add mov var to: " << svt_t.to_string() << std::endl;
+				// log << std::endl;
+
+				// std::unordered_map<int64_t, std::vector<StackVariableTrace>> moved_variable_value_trace_stack_vector_map;
 
 				// stack_log << "[TRACE] value_f : " << value_f << std::endl;
 				// stack_log << "[TRACE] value_t : " << value_t << std::endl;
@@ -2829,11 +2945,6 @@ namespace GOTHIC_NAMESPACE
 								source_data.argument_name = translated_field.name;
 								source_data.argument_array_index = svt_t.stack_variable.array_index;
 								source_data.is_array = translated_field.is_array;
-
-								// log << "[LOG] section_name: " << source_data.section_name << std::endl;
-								// log << "[LOG] function_name: " << source_data.function_name << std::endl;
-								// log << "[LOG] argument_array_index: " << source_data.argument_array_index << std::endl;
-								// log << "[LOG] is_array: " << source_data.is_array << std::endl;
 
 								// need a copy!!!
 								auto stack_variable_vector = svt_f.extra_stack_variable_vector;
@@ -3145,6 +3256,7 @@ namespace GOTHIC_NAMESPACE
 				}
 
 				// log << "[LOG] find string, name: " << symbol_name << ", source: " << source << ", data: " << symbol_string_data << std::endl;
+				// log.flush();
 
 				uint64_t translate_value = calculate_translate_value(symbol_name, symbol_string_data);
 				script_string_data_add(symbol_string_data, source, std::to_string(translate_value),
@@ -3269,62 +3381,6 @@ namespace GOTHIC_NAMESPACE
 			virtual_address_prev = virtual_address;
 		}
 
-
-		// auto stack_variable_t_1 = StackVariable("arg1");
-		// auto stack_variable_t_2 = StackVariable("arg2");
-		// auto stack_variable_t_3 = StackVariable("arg2");
-		// auto stack_variable_trace_t_1 = StackVariableTrace();
-		// auto stack_variable_trace_t_2 = StackVariableTrace();
-		// auto stack_variable_trace_t_3 = StackVariableTrace();
-		// stack_variable_trace_t_1.stack_variable = stack_variable_t_1;
-		// stack_variable_trace_t_2.stack_variable = stack_variable_t_2;
-		// stack_variable_trace_t_3.stack_variable = stack_variable_t_3;
-		// auto stack_data = StackData();
-
-
-
-
-
-
-
-
-		// for (auto & [virtual_address, stack_data] : address_stack_data_map)
-		// {
-		// 	log << "name: " << stack_data.name;
-		// 	log << ", index: " << stack_data.index;
-		// 	log << ", address_begin: " << stack_data.address_begin;
-		// 	log << ", address_end: " << stack_data.address_end;
-		// 	log << ", size: " << stack_data.size << std::endl;
-		// }
-
-
-		// if (address_stack_data_map.count(virtual_address_old))
-		// {
-		//
-		// }
-		//
-		// virtual_address_old = virtual_address;
-		// uint64_t virtual_address_old = 0xFFFFFFFF;
-
-		// 3. add strings from vm with source
-		// parse_stack(parser->stack.stack, parser->stack.GetDynSize(), parser); <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-
-		// DIA_ADDON_CAVALORN_TEACH_CHOICES, B_BUILDLEARNSTRING
-
-
-
-
-		// std::remove("stack_log.txt");
-
-
-
-
-		// std::unordered_map<std::string, bool> exception_func;
-		// exception_func["B_REMOVEGHOST"] = true; // fake return
-		// exception_func["B_MM_WISPDETECT"] = true; // fake return, 2 stack instead 0...
-		// exception_func["B_MM_DESYNCHRONIZE"] = true; // fake return
-		// exception_func["ZS_GREENTENTACLE"] = true; // fake return
-
 		uint64_t counter = 0;
 		for (auto & [virtual_address, stack_data] : script_address_stack_data_map)
 		{
@@ -3332,7 +3388,9 @@ namespace GOTHIC_NAMESPACE
 			// 	break;
 
 			// std::remove("stack_log.txt");
+
 			// log << "trace_stack, stack_data.name: " << stack_data.name << ", virtual_address: " << virtual_address << std::endl;
+			// log.flush();
 
 			auto symbol = parser->symtab.table[stack_data.index];
 
@@ -3465,9 +3523,23 @@ namespace GOTHIC_NAMESPACE
 						{
 							if (std::count(ou_string_data_insert_order.begin(), ou_string_data_insert_order.end(), string) <= 0)
 							{
+								std::string npc;
 								std::string source = (const char*)ou->roleName;
+
+								if (dialog_data_map.contains(source))
+									npc = dialog_data_map[source];
+
 								remove_broken_symbols(source);
 								source = "[" + source + "]";
+								if (!npc.empty())
+								{
+									source += " " + npc;
+									if (npc_name_map.contains(npc))
+									{
+										std::string encoded_npc = encode_string(npc_name_map[npc], json_settings["script_encoding"], "utf8");
+										source += ", " + encoded_npc;
+									}
+								}
 
 								ou_string_data_insert_order.push_back(string);
 								ou_string_data[string]["translate_source"] = source; // if same name, other source?
