@@ -89,5 +89,15 @@ If plugin do not find this folder, it creates language template, with translate 
 Go to `[GAME_FOLDER]/zTranslate/[YOU_LANGUAGE]/Text` and just edit `translate.json` file
 
 ## Audio translate
-Just put in some audio files in `[GAME_FOLDER]/zTranslate/[YOU_LANGUAGE]/Audio` folder.
+Just put in some audio files in `[GAME_FOLDER]/zTranslate/[YOU_LANGUAGE]/Audio` folder.\
 Audio files need have same name. Like `DIA_331_WALDTRAUT_SCHMUCK_15_01.WAV`
+
+Audio format must be:
+```
+Format                         : PCM
+Format settings                : Little / Signed
+Bit rate mode                  : Constant
+Channel(s)                     : 1 channel
+Sampling rate                  : 44.1 kHz
+Bit depth                      : 16 bits
+```
