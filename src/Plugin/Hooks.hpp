@@ -28,15 +28,13 @@ namespace GOTHIC_NAMESPACE
 		Hook_zCResourceManager_CacheOut(self, vtable, resource);
 	}
 
-	void __fastcall zCMenu_Startup(zCMenu* self, void* vtable);
-	auto Hook_zCMenu_Startup = Union::CreateHook(reinterpret_cast<void*>(
-		zSwitch(0x004CD3B0, 0x004D9F90)),
-		&zCMenu_Startup, Union::HookType::Hook_Detours);
-	void __fastcall zCMenu_Startup(zCMenu* self, void* vtable)
-	{
-		Hook_zCMenu_Startup(self, vtable);
-		hook_after_game_init_and_before_menu_appear();
-	}
+	static auto partial_hook_menu_startup = Union::CreatePartialHook(reinterpret_cast<void*>
+		(0x004DA343), []()
+		{
+			plugin_init();
+			hook_after_game_init_and_before_menu_appear();
+		}
+	);
 
 	// G1C: 0x004D6F30 public: virtual int __thiscall zCMenuItemChoice::ToggleValue(int,int)
 	// G2A: 0x004E4080 public: virtual int __thiscall zCMenuItemChoice::ToggleValue(int,int)
@@ -58,15 +56,5 @@ namespace GOTHIC_NAMESPACE
 	{
 		Hook_zCMenu_Render(self, vtable);
 		menu_loop();
-	}
-
-	void __fastcall oCGame_Init(oCGame* self, void* vtable);
-	auto Hook_oCGame_Init = Union::CreateHook(reinterpret_cast<void*>(
-		zSwitch(0x00636F50, 0x0065D480, 0x006646D0, 0x006C1060)),
-		&oCGame_Init, Union::HookType::Hook_Detours);
-	void __fastcall oCGame_Init(oCGame* self, void* vtable)
-	{
-		Hook_oCGame_Init(self, vtable);
-		hook_game_init();
 	}
 }

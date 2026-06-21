@@ -85,11 +85,11 @@ namespace GOTHIC_NAMESPACE
 
     void hook_pre_cache_out(zCResource* resource)
     {
-        auto wave_data = get_wave_data_from_resource(resource);
+        zCWaveData* wave_data = get_wave_data_from_resource(resource);
         if (!wave_data)
             return;
 
-        std::string sound_file_name = (const char*)wave_data->fileName;
+        std::string sound_file_name = wave_data->fileName.ToChar();
         std::transform(sound_file_name.begin(), sound_file_name.end(), sound_file_name.begin(), ::toupper);
 
         if (!sound_data_map.contains(sound_file_name))
@@ -124,7 +124,7 @@ namespace GOTHIC_NAMESPACE
         if (!wave_data)
             return;
 
-        std::string sound_file_name = (const char*)wave_data->fileName;
+        std::string sound_file_name = wave_data->fileName.ToChar();
         if (sound_file_name.length() > 4)
             sound_file_name.erase(sound_file_name.length() - 4);
         std::transform(sound_file_name.begin(), sound_file_name.end(), sound_file_name.begin(), ::toupper);

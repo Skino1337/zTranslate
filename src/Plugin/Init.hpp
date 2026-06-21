@@ -3,6 +3,7 @@ namespace GOTHIC_NAMESPACE
     struct PluginIniData
     {
         std::string     section_text_section_name           = "TEXT";
+        bool            section_text_enable                 = true;
         std::string     section_text_lang;
 
 
@@ -76,16 +77,26 @@ namespace GOTHIC_NAMESPACE
 
 
     // std::ofstream log;
-
+    // std::string log_file_path = "log.txt";
+    // bool is_log_init = false;
 
     void init_log()
     {
-        // std::remove("log.txt");
-        // log.open("log.txt", std::ios::app);
-        // while (!log.is_open())
-        //     std::this_thread::sleep_for(std::chrono::seconds(1));
+        // if (!is_log_init)
+        //     std::remove(log_file_path.c_str());
         //
-        // log << std::unitbuf; // Enable auto-flushing
+        // if (!log.is_open())
+        //     log.open(log_file_path, std::ios::app);
+        //
+        // if (log.is_open())
+        // {
+        //     log << std::unitbuf;
+        //     is_log_init = true;
+        // }
+        // else
+        // {
+        //     is_log_init = false;
+        // }
     }
 
     void save_plugin_ini_file()
@@ -95,6 +106,8 @@ namespace GOTHIC_NAMESPACE
         ss << std::fixed << std::setprecision(2);
 
         ss << "[" << plugin_ini_data.section_text_section_name << "]" << std::endl;
+        temp_string = plugin_ini_data.section_text_enable ? "true" : "false";
+        ss << "enable" << " = " << temp_string << std::endl;
         temp_string = plugin_ini_data.section_text_lang == "_" ? "" : plugin_ini_data.section_text_lang;
         ss << "lang" << " = " << temp_string << std::endl;
 
@@ -159,11 +172,21 @@ namespace GOTHIC_NAMESPACE
                   return std::isspace(c) || !std::isprint(c);
               });
 
+            std::ranges::transform(variable, variable.begin(), [] (unsigned char c)
+            {
+                return std::tolower(c);
+            });
+
             std::string value = string_splited_vector[1];
             std::erase_if(value,
               [](unsigned char c) {
                   return std::isspace(c) || !std::isprint(c);
               });
+
+            std::ranges::transform(value, value.begin(), [] (unsigned char c)
+            {
+                return std::tolower(c);
+            });
 
             if (section == plugin_ini_data.section_text_section_name)
             {
@@ -174,6 +197,17 @@ namespace GOTHIC_NAMESPACE
                         value = "_";
                     }
                     plugin_ini_data.section_text_lang = value;
+                }
+                else if (variable == "enable")
+                {
+                    if (value == "true")
+                    {
+                        plugin_ini_data.section_text_enable = true;
+                    }
+                    if (value == "false")
+                    {
+                        plugin_ini_data.section_text_enable = false;
+                    }
                 }
             }
             else if (section == plugin_ini_data.section_audio_section_name)
@@ -448,7 +482,7 @@ namespace GOTHIC_NAMESPACE
         }
     }
 
-    void hook_game_init()
+    void plugin_init()
     {
         init_log();
 
@@ -515,6 +549,7 @@ namespace GOTHIC_NAMESPACE
         //     std::remove(selected_text_language_data->text_data.full_path_to_translate_file.c_str());
         // }
 
+        // log << "hook_game_init" << std::endl;
         // log << "plugin_ini_data.section_text_lang: " << plugin_ini_data.section_text_lang << std::endl;
         // log << "plugin_ini_data.section_audio_lang: " << plugin_ini_data.section_audio_lang << std::endl;
         // log << "plugin_ini_data.section_other_dialog_duration_coef: " << plugin_ini_data.section_other_dialog_duration_coef << std::endl;

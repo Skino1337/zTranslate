@@ -10,29 +10,9 @@ namespace GOTHIC_NAMESPACE
 	// std::ofstream log;
 	// std::ofstream stack_log;
 
-	std::vector<std::string> class_with_translated_fields = {
-		"C_INFO.DESCRIPTION",
-		"C_NPC.NAME",
-		"C_ITEM.NAME", "C_ITEM.DESCRIPTION", "C_ITEM.TEXT",
-		"C_MENU_ITEM.TEXT",
-	};
     std::vector<std::string> assign_string_vector = {};
 
-	// function name, string arguments count, translatable argument position (from 1)
-	std::vector<std::string> functions_with_translated_argument = {
-		"INFO_ADDCHOICE,     1, 1",
-		"LOG_ADDENTRY,       2, 1, 2",
-		"INTRODUCECHAPTER,   4, 1, 2",
-		"DOC_PRINTLINE,      1, 1",
-		"DOC_PRINTLINES,     1, 1",
-		"PRINTSCREEN,        2, 1",
-		"AI_PRINTSCREEN,     2, 1",
-	};
 	std::vector<std::vector<std::any>> call_function_with_string_argument_vector_vector = {};
-
-	std::unordered_map<std::string, std::vector<bool>> call_function_with_translated_string_argument_map = {
-		{"LOG_ADDENTRY", {true, true}}
-	};
 
 	// std::filesystem::path translate_file_path = "Translate/translate.json";
 	std::unordered_map<std::string, std::string> json_settings = {
@@ -143,8 +123,6 @@ namespace GOTHIC_NAMESPACE
 			return ss.str();
 		}
 	};
-
-
 
 	struct TranslatedField
 	{
@@ -371,18 +349,147 @@ namespace GOTHIC_NAMESPACE
 		})},
 	};
 
-	struct AudionData
+
+	struct VoiceArgument
+	{
+		std::string name = "ARG_?";
+		uint64_t number = 0;
+		bool is_source = false;
+		bool is_dia = false;
+		std::set<std::string> used_in = {};
+
+		VoiceArgument() = default;
+		VoiceArgument(std::string name, const uint64_t number, const bool is_source, const bool is_dia)
+			: name(std::move(name)), number(number), is_source(is_source), is_dia(is_dia) {};
+
+		std::string to_string() const
+		{
+			std::string is_s = is_source ? "true" : "false";
+			std::string is_d = is_dia ? "true" : "false";
+			std::string us_in;
+			for (auto & used_in_string: used_in)
+			{
+				us_in += " " + used_in_string;
+			}
+			return "[VoiceArgument] name: " + name
+				+ ", number: " + std::to_string(number)
+				+ ", is_source: " + is_s
+				+ ", is_dia: " + is_d
+				+ ", used_in:" + us_in;
+		}
+	};
+
+	struct FunctionWithVoiceArgument
+	{
+		std::string name = "UNNAMED_FUNCTION";
+		uint64_t argument_count = 0;
+		std::vector<VoiceArgument> voice_argument_vector = {};
+
+		FunctionWithVoiceArgument() = default;
+		FunctionWithVoiceArgument(std::string name, const uint64_t argument_count, std::vector<VoiceArgument> svv)
+			: name(std::move(name)), argument_count(argument_count), voice_argument_vector(std::move(svv)) {};
+
+		std::string to_string() const
+		{
+			std::string voice_argument_vector_ret;
+			for (auto & voice_argument: voice_argument_vector)
+			{
+				voice_argument_vector_ret += " " + voice_argument.to_string();
+			}
+			return "[FunctionWithVoiceArgument] name: " + name
+				+ ", argument_count: " + std::to_string(argument_count)
+				+ ", voice_argument_vector:" + voice_argument_vector_ret;
+		}
+	};
+
+	std::map<std::string, FunctionWithVoiceArgument> voice_function_map {
+			{"AI_OUTPUT", FunctionWithVoiceArgument("AI_OUTPUT", 3, {
+				VoiceArgument("SLF",				1, true,		false),
+				VoiceArgument("OTH",				2, false,	false),
+				VoiceArgument("DIA",				3, false,	true),
+			})},
+			{"AI_OUTPUTSVM", FunctionWithVoiceArgument("AI_OUTPUTSVM", 3, {
+				VoiceArgument("SLF",				1, true,		false),
+				VoiceArgument("OTH",				2, false,	false),
+				VoiceArgument("DIA",				3, false,	true),
+			})},
+			{"AI_OUTPUTSVM_OVERLAY", FunctionWithVoiceArgument("AI_OUTPUTSVM_OVERLAY", 3, {
+				VoiceArgument("SLF",				1, true,		false),
+				VoiceArgument("OTH",				2, false,	false),
+				VoiceArgument("DIA",				3, false,	true),
+			})},
+		};
+
+	struct OUData
+	{
+		std::string dia;
+		std::string text;
+		std::string source;
+		std::string text_translated;
+
+		OUData() = default;
+		std::string to_string() const
+		{
+			return "[OUData] dia: " + dia
+				+ ", text: " + text
+				+ ", source: " + source
+				+ ", text_translated: " + text_translated;
+		}
+	};
+
+	std::vector<OUData> ou_data_vector = {};
+	std::unordered_map<std::string, uint64_t> ou_data_by_dia_map = {};
+	std::unordered_map<std::string, uint64_t> ou_data_by_text_map = {};
+	std::unordered_map<std::string, uint64_t> ou_data_by_dia_text_map = {};
+
+	struct VoiceOutputData
+	{
+		std::string section_name;
+		std::string source_variable_name;
+		std::string dialog_name;
+		std::string tria_npc_name;
+
+		VoiceOutputData() = default;
+		std::string to_string() const
+		{
+			return "[VoiceOutputData] section_name: " + section_name
+				+ ", source_variable_name: " + source_variable_name
+				+ ", dialog_name: " + dialog_name
+				+ ", tria_npc_name: " + tria_npc_name;
+		}
+	};
+
+	std::map<std::string, std::vector<VoiceOutputData>> function_with_voice_output_data_vector_map = {};
+	std::map<std::string, std::unordered_set<std::string>> function_with_voice_output_data_called_from_map = {};
+	std::unordered_set<std::string> function_with_voice_output_set = {};
+	std::unordered_set<std::string> voice_output_check_recursion_set = {};
+
+
+	struct DialogData
 	{
 		std::string info_instance_name;
 		std::string info_npc_class_name;
-		std::string info_information_name;
+		std::unordered_set<std::string> info_information_choice_name_set;
 		std::string npc_name;
 
-		AudionData() = default;
+		DialogData() = default;
+		std::string to_string() const
+		{
+			std::string info_information_choice_name_set_ret;
+			for (auto & info_information_choice_name: info_information_choice_name_set)
+			{
+				info_information_choice_name_set_ret += " " + info_information_choice_name;
+			}
+
+			return "[DialogData] info_instance_name: " + info_instance_name
+				+ ", info_npc_class_name: " + info_npc_class_name
+				+ ", npc_name: " + npc_name
+				+ ", info_information_choice_name_set: " + info_information_choice_name_set_ret;
+		}
 	};
 
-	std::map<std::string, AudionData> audio_data_map = {};
-	std::map<std::string, std::string> dialog_data_map = {};
+	std::map<std::string, DialogData> dialog_data_map = {};
+	std::map<std::string, std::string> dialog_name_npc_name_map = {};
 	std::map<std::string, std::string> npc_name_map = {};
 
 	struct SourceData
@@ -1058,7 +1165,6 @@ namespace GOTHIC_NAMESPACE
 			auto json_vmh = json_object_string_element->try_get_value("virtual_machine_hash");
 			if (json_vmh && json_vmh->is_string())
 				vmh = json_vmh->get_string();
-			// MyFile << "vmh " << vmh << "\n";
 
 			//...
 
@@ -1067,7 +1173,6 @@ namespace GOTHIC_NAMESPACE
 				continue;
 
 			auto string = json_string->get_string();
-			// MyFile << "string " << i << " " << string << "\n";
 
 			// log << "json string: " << string << ", bytes: " << const_char_to_string_bytes(string) << "\n";
 
@@ -1138,8 +1243,25 @@ namespace GOTHIC_NAMESPACE
 		// ...
 
 		auto json_ou_array = dynamic_cast<const TinyJSON::TJValueArray*>(json_ou_array_);
+
+		// do not recreate memory for new array size after push
+		ou_data_vector.reserve(json_ou_array->get_number_of_items());
+
 		for (int64_t i = 0; i < json_ou_array->get_number_of_items(); ++i)
 		{
+
+			// for (auto & ou_data : ou_data_vector)
+			// {
+			// 	std::unordered_map<std::string, std::string> map;
+			// 	map["translate_source"] = ou_data.source;
+			// 	map["translated_string"] = ou_data.text_translated;
+			//
+			// 	auto json_object  = new TinyJSON::TJValueObject();
+			// 	write_map_to_json_object(json_object, "", map, ou_data.text, script_encoding);
+			//
+			// 	json_array->add(json_object);
+			// }
+
 			auto json_ou_element = json_ou_array->at(i);
 			if (!json_ou_element->is_object())
 				continue;
@@ -1147,17 +1269,81 @@ namespace GOTHIC_NAMESPACE
 			auto json_object_ou_element = dynamic_cast<TinyJSON::TJValueObject*>(json_ou_element);
 
 			std::unordered_map<std::string, std::string> map;
-			auto string = read_json_object_to_map(json_object_ou_element, map);
-			if (string.empty())
+			auto text = read_json_object_to_map(json_object_ou_element, map);
+			if (text.empty())
 				continue;
 
-			std::string encoded_string = string;
 			uint64_t cp = std::stoi(json_settings["script_encoding"]);
 			if (cp >= 1250 && cp <= 1254)
-				encoded_string = utf8_to_cp(string, cp);
+				text = utf8_to_cp(text, cp);
 
-			ou_string_data_insert_order.emplace_back(encoded_string);
-			ou_string_data[encoded_string] = map;
+			std::string source;
+			std::string dia;
+			if (map.contains("translate_source"))
+			{
+				source = map["translate_source"];
+				auto source_splitted = split_string(source, "]");
+				if (!source_splitted.empty())
+				{
+					dia = source_splitted[0];
+					if (!dia.empty())
+					{
+						dia = dia.substr(1);
+					}
+				}
+			}
+
+			std::string text_translated;
+			if (map.contains("translated_string"))
+			{
+				text_translated = map["translated_string"];
+			}
+
+			auto ou_data = OUData();
+			ou_data.dia = dia;
+			ou_data.text = text;
+			ou_data.source = source;
+			ou_data.text_translated = text_translated;
+
+			// log << "read ou : " << ou_data.to_string() << std::endl;
+
+			ou_data_vector.push_back(ou_data);
+
+			if (!ou_data.dia.empty())
+				ou_data_by_dia_map[ou_data.dia] = ou_data_vector.size() - 1;
+
+			if (!ou_data.text.empty())
+				ou_data_by_text_map[ou_data.text] = ou_data_vector.size() - 1;
+
+			// ou_data_by_text_map[ou_data.text] = & ou_data_vector.back();
+			// ou_data_by_dia_text_map[ou_data.dia + ou_data.text] = & ou_data_vector.back();
+
+			// std::string encoded_string = string;
+			// uint64_t cp = std::stoi(json_settings["script_encoding"]);
+			// if (cp >= 1250 && cp <= 1254)
+			// 	encoded_string = utf8_to_cp(string, cp);
+			//
+			// ou_string_data_insert_order.emplace_back(encoded_string);
+			// ou_string_data[encoded_string] = map;
+
+			// auto json_ou_element = json_ou_array->at(i);
+			// if (!json_ou_element->is_object())
+			// 	continue;
+			//
+			// auto json_object_ou_element = dynamic_cast<TinyJSON::TJValueObject*>(json_ou_element);
+			//
+			// std::unordered_map<std::string, std::string> map;
+			// auto string = read_json_object_to_map(json_object_ou_element, map);
+			// if (string.empty())
+			// 	continue;
+			//
+			// std::string encoded_string = string;
+			// uint64_t cp = std::stoi(json_settings["script_encoding"]);
+			// if (cp >= 1250 && cp <= 1254)
+			// 	encoded_string = utf8_to_cp(string, cp);
+			//
+			// ou_string_data_insert_order.emplace_back(encoded_string);
+			// ou_string_data[encoded_string] = map;
 		}
 
 		// ...
@@ -1248,19 +1434,31 @@ namespace GOTHIC_NAMESPACE
 		}
 	}
 
-	void write_ou(TinyJSON::TJValueArray* json_array, const std::string& script_encoding)
+	void write_ou(TinyJSON::TJValueArray* json_array, const std::string & script_encoding)
 	{
-		for (int i = 0; i < ou_string_data_insert_order.size(); ++i)
+		for (auto & ou_data : ou_data_vector)
 		{
-			auto& string_key = ou_string_data_insert_order[i];
-			auto& string_entry = ou_string_data[string_key];
+			std::unordered_map<std::string, std::string> map;
+			map["translate_source"] = ou_data.source;
+			map["translated_string"] = ou_data.text_translated;
 
-			auto json_string  = new TinyJSON::TJValueObject();
+			auto json_object  = new TinyJSON::TJValueObject();
+			write_map_to_json_object(json_object, "", map, ou_data.text, script_encoding);
 
-			write_map_to_json_object(json_string, "", string_entry, string_key, script_encoding);
-
-			json_array->add(json_string);
+			json_array->add(json_object);
 		}
+
+		// for (int i = 0; i < ou_string_data_insert_order.size(); ++i)
+		// {
+		// 	auto& string_key = ou_string_data_insert_order[i];
+		// 	auto& string_entry = ou_string_data[string_key];
+		//
+		// 	auto json_string  = new TinyJSON::TJValueObject();
+		//
+		// 	write_map_to_json_object(json_string, "", string_entry, string_key, script_encoding);
+		//
+		// 	json_array->add(json_string);
+		// }
 	}
 
 	void write_menu(TinyJSON::TJValueArray* json_array, const std::string& script_encoding)
@@ -1295,28 +1493,11 @@ namespace GOTHIC_NAMESPACE
 		// log << "write virtual_machine_hash: " << new_virtual_machine_hash << " \n";
 		// log.flush();
 
-		// auto json_class_with_translated_fields = new TinyJSON::TJValueArray();
-		// for (auto& class_with_translated_field : class_with_translated_fields)
-		// 	json_class_with_translated_fields->add_string(class_with_translated_field.c_str());
-		// json->set("class_with_translated_fields", json_class_with_translated_fields);
-		//
-		// auto json_functions_with_translated_argument = new TinyJSON::TJValueArray();
-		// for (auto& function_with_translated_argument : functions_with_translated_argument)
-		// 	json_functions_with_translated_argument->add_string(function_with_translated_argument.c_str());
-		// json->set("functions_with_translated_argument", json_functions_with_translated_argument);
-
-		// if (is_settings_only)
-		// {
-		// 	// write json only with settings for hand encoding fix
-		// 	TinyJSON::TJ::write_file(translate_file_path.c_str(), *json, options);
-		// 	return;
-		// }
-
 		auto json_string_array = new TinyJSON::TJValueArray();
 		auto json_ou_array = new TinyJSON::TJValueArray();
 		auto json_menu_array = new TinyJSON::TJValueArray();
 
-		if (!is_json_read)
+		if (is_json_read == false)
 		{
 			for (int i = 0; i < script_string_data_insert_order.size(); ++i)
 			{
@@ -2010,6 +2191,8 @@ namespace GOTHIC_NAMESPACE
 
 		// можно сдлеать 1 вариант но делать пометку что есть АИ_
 
+		// log << std::endl;
+
 		// thx archolos...
 		bool is_ai_function = source_data.function_name.substr(0, 11) == "AI_FUNCTION";
 		if (is_ai_function && prepared_argument_vector.size() > 2 && !script_index_stack_data_map.empty())
@@ -2062,6 +2245,7 @@ namespace GOTHIC_NAMESPACE
 				for (uint64_t i = 0; i < prepared_argument_vector.size(); ++i)
 				{
 					// log << "[LOG] arg# " << i << ", is_translated: " << called_fwta.translated_argument_vector[i].is_translated << std::endl;
+					// log << "[LOG] " << called_fwta.translated_argument_vector[i].to_string() << std::endl;
 
 					if (called_fwta.translated_argument_vector[i].is_translated == false)
 						continue;
@@ -2088,6 +2272,8 @@ namespace GOTHIC_NAMESPACE
 								section_translated_argument.used_in.insert(called_fwta.name);
 							}
 						}
+
+						// log << "[LOG] stack_variable: " << stack_variable.to_string() << std::endl;
 
 						source_data.section_name = section_fwta.name;
 						source_data.argument_name = called_fwta.translated_argument_vector[i].name;
@@ -2117,6 +2303,121 @@ namespace GOTHIC_NAMESPACE
 		}
 	}
 
+	void manage_voice_function(zCParser* loc_parser, const FunctionWithVoiceArgument & voice_function,
+		const std::string & section_name, const std::vector<StackVariableTrace> & argument_vector,
+		const std::string & tria_self_npc_name)
+	{
+		StackVariable src_stack_variable;
+		StackVariable dia_stack_variable;
+
+		// log << "CALL manage_voice_function for check: " << voice_function.name << std::endl;
+		// log.flush();
+
+		// @TODO: add check extra StackVariable
+		for (uint64_t i = 0; i < voice_function.argument_count; ++i)
+		{
+			if (voice_function.voice_argument_vector[i].is_source)
+			{
+				src_stack_variable = argument_vector[i].stack_variable;
+			}
+			if (voice_function.voice_argument_vector[i].is_dia)
+			{
+				dia_stack_variable = argument_vector[i].stack_variable;
+			}
+		}
+
+		// log << std::endl;
+		// log << "function: " << voice_function.name << std::endl;
+		// log << "section_name: " << section_name << std::endl;
+		// log << "src_stack_variable: " << src_stack_variable.to_string() << std::endl;
+		// log << "dia_stack_variable: " << dia_stack_variable.to_string() << std::endl;
+
+
+		if (dia_stack_variable.value < 0 || dia_stack_variable.value >= loc_parser->symtab.table.GetNum())
+			return;
+
+		std::string dia = loc_parser->symtab.table[dia_stack_variable.value]->stringdata[0].ToChar();
+
+		// B_...
+		if (dia.empty())
+			return;
+
+		VoiceOutputData voice_output_data;
+
+		voice_output_data.section_name = section_name;
+		voice_output_data.source_variable_name = src_stack_variable.name;
+		voice_output_data.dialog_name = dia;
+		voice_output_data.tria_npc_name = tria_self_npc_name;
+
+		function_with_voice_output_data_vector_map[section_name].push_back(voice_output_data);
+
+		// log << voice_output_data.dialog_name << ": " << voice_output_data.source_variable_name << std::endl;
+	}
+
+	void function_with_voice_add_section(zCParser* loc_parser,
+		FunctionWithVoiceArgument & section_fwva,
+		SourceData & source_data,
+		std::vector<StackVariableTrace> & prepared_argument_vector)
+	{
+		if (voice_function_map.contains(source_data.function_name))
+		{
+
+			// log << std::endl;
+			// log << std::endl;
+			// log << "[LOG] voice_function_map.contains(source_data.function_name): " << source_data.function_name << std::endl;
+			// log.flush();
+
+			auto & called_fwva = voice_function_map[source_data.function_name];
+			if (prepared_argument_vector.size() == called_fwva.argument_count)
+			{
+				// log << "[LOG] prepared_argument_vector.size() == called_fwva.argument_count: " << called_fwva.argument_count << std::endl;
+				// log.flush();
+
+				for (uint64_t i = 0; i < prepared_argument_vector.size(); ++i)
+				{
+					if (called_fwva.voice_argument_vector[i].is_source == false
+						&& called_fwva.voice_argument_vector[i].is_dia == false)
+						continue;
+
+					// need a copy!!!
+					auto stack_variable_vector = prepared_argument_vector[i].extra_stack_variable_vector;
+					stack_variable_vector.push_back(prepared_argument_vector[i].stack_variable);
+
+					for (auto & stack_variable : stack_variable_vector)
+					{
+
+						// log << "[LOG] check stack_variable: " << stack_variable.to_string() << std::endl;
+						// log.flush();
+
+						for (auto & section_voice_argument : section_fwva.voice_argument_vector)
+						{
+
+							// log << "[LOG] check section_voice_argument: " << section_voice_argument.to_string() << std::endl;
+							// log.flush();
+
+							if (stack_variable.name == section_voice_argument.name)
+							{
+								// log << "[LOG] MATCH NAME: " << stack_variable.name << std::endl;
+								// log.flush();
+
+								if (called_fwva.voice_argument_vector[i].is_source)
+								{
+									section_voice_argument.is_source = true;
+									section_voice_argument.used_in.insert(called_fwva.name);
+								}
+								if (called_fwva.voice_argument_vector[i].is_dia)
+								{
+									section_voice_argument.is_dia = true;
+									section_voice_argument.used_in.insert(called_fwva.name);
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
     void trace_stack(byte* bytecode, uint64_t address_begin, uint64_t size, zCParser* loc_parser, bool is_menu = false)
 	{
 		// stack_log.close();
@@ -2124,6 +2425,10 @@ namespace GOTHIC_NAMESPACE
 		// stack_log.open("stack_log.txt", std::ios::app);
 		// while (!stack_log.is_open())
 		// 	std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+
+		// log << std::endl;
+		// log << std::endl;
 
 		uint64_t old_i = address_begin;
 
@@ -2142,11 +2447,9 @@ namespace GOTHIC_NAMESPACE
 		bool is_goto_found = false;
 		bool is_last_return = false;
 
-		// auto address_end = get_stack_section_address(virtual_address_name_map, address_begin, true);
-		// auto section_size = address_end - address_begin;
-		// stack_log << "[TRACE] [" << section_stack_data.name << "] ADDRESS: " << address_begin
-		// << ", SIZE: " << section_stack_data.size << std::endl;
-		// stack_log.flush();
+		// log << "[TRACE] [" << section_stack_data.name << "] ADDRESS: " << address_begin
+		// 	<< ", SIZE: " << section_stack_data.size << std::endl;
+		// log.flush();
 
 		uint64_t section_argument_count = section_symbol->ele;
 		uint64_t section_return_count = section_symbol->HasFlag(zPAR_FLAG_RETURN);
@@ -2197,18 +2500,26 @@ namespace GOTHIC_NAMESPACE
 		section_fwta.argument_count = section_argument_count;
 		section_fwta.name = section_stack_data.name;
 
+		// for audio
+		std::string tria_self_npc_name;
+		auto section_fwva = FunctionWithVoiceArgument();
+		section_fwva.argument_count = section_argument_count;
+		section_fwva.name = section_stack_data.name;
+
 		for (uint64_t i = address_begin; i <= address_begin + size; ++i)
 		{
-			if (old_i != i)
-			{
-				std::string comment;
-				if (token_symbol)
-					comment = token_symbol->name;
-				auto stack_data_string = bytes_to_stack_data(bytecode, old_i, i - old_i, comment);
-
-				// stack_log << stack_data_string;
-				// stack_log.flush();
-			}
+			// if (old_i != i)
+			// {
+			// 	if (section_stack_data.name == "B_LOGENTRY")
+			// 	{
+			// 		std::string comment;
+			// 		if (token_symbol)
+			// 			comment = token_symbol->name;
+			// 		auto stack_data_string = bytes_to_stack_data(bytecode, old_i, i - old_i, comment);
+			//
+			// 		log << stack_data_string << std::endl;
+			// 	}
+			// }
 
 			if (is_last_return || i >= address_begin + size)
 				break;
@@ -2247,6 +2558,9 @@ namespace GOTHIC_NAMESPACE
 
 					auto ta = TranslatedArgument(stack_variable.name, argument_number, false);
 					section_fwta.translated_argument_vector.insert(section_fwta.translated_argument_vector.begin(), ta);
+
+					auto va = VoiceArgument(stack_variable.name, argument_number, false, false);
+					section_fwva.voice_argument_vector.insert(section_fwva.voice_argument_vector.begin(), va);
 				}
 
 				// stack_log << "[TRACE] zPAR_TOK_PUSHVAR OK: " << stack_variable_trace.to_string() << std::endl;
@@ -2290,7 +2604,7 @@ namespace GOTHIC_NAMESPACE
 
 				i += 5;
 			}
-			else if (token == zPAR_TOK_PUSHINST)
+			else if (token == zPAR_TOK_PUSHINST) // 0x43
 			{
 				token_value = get_token_next_bytes(bytecode, i);
 				token_symbol = loc_parser->symtab.table[token_value];
@@ -2315,6 +2629,10 @@ namespace GOTHIC_NAMESPACE
 
 					auto ta = TranslatedArgument(stack_variable.name, argument_number, false);
 					section_fwta.translated_argument_vector.insert(section_fwta.translated_argument_vector.begin(), ta);
+
+					// for audio
+					auto va = VoiceArgument(stack_variable.name, argument_number, false, false);
+					section_fwva.voice_argument_vector.insert(section_fwva.voice_argument_vector.begin(), va);
 				}
 
 				// ...
@@ -2436,12 +2754,64 @@ namespace GOTHIC_NAMESPACE
 					if (moved_variable_value_trace_map.count(stack_variable_trace_argment.stack_variable.value))
 					{
 						stack_variable_trace_argment = moved_variable_value_trace_map[stack_variable_trace_argment.stack_variable.value];
-						// stack_log << "[TRACE] found move, new arg#" << k + 1 << " " << stack_variable_trace_argment.to_string() << std::endl;
+						// log << "[TRACE] found move, new arg#" << k + 1 << " " << stack_variable_trace_argment.to_string() << std::endl;
 					}
 
 					prepared_argument_vector.push_back(stack_variable_trace_argment);
 
 					k++;
+				}
+
+				// ...
+
+				// for audio
+
+				if (function_name == "TRIA_NEXT" && prepared_argument_vector.size() == 1)
+				{
+					tria_self_npc_name = prepared_argument_vector[0].stack_variable.name;
+				}
+
+				// for audio
+
+				// for (auto & [_, dialog_data] : dialog_data_map)
+				// {
+				// 	if (dialog_data.info_information_choice_name_set.contains(section_stack_data.name))
+				// 	{
+				// 		dialog_data.info_information_choice_name_set.insert(function_name);
+				//
+				// 		// log << function_name << " added in " << dialog_data.info_instance_name << std::endl;
+				// 		// for (auto & fu_name : dialog_data.info_information_choice_name)
+				// 		// {
+				// 		// 	log << "included: " << fu_name  << std::endl;
+				// 		// }
+				// 		// log.flush();
+				//
+				// 		break;
+				// 	}
+				// }
+
+				// log << "CALL FUNCTION IN SCRIPT CODE: " << function_name << std::endl;
+				// log.flush();
+
+				// for audio
+				if (voice_function_map.contains(function_name))
+				{
+					auto & voice_function = voice_function_map[function_name];
+					if (voice_function.argument_count == argument_count)
+					{
+						manage_voice_function(loc_parser, voice_function, section_stack_data.name,
+							prepared_argument_vector, tria_self_npc_name);
+					}
+				}
+
+				if (function_with_voice_output_data_vector_map.contains(function_name))
+				{
+					function_with_voice_output_data_called_from_map[section_stack_data.name].insert(function_name);
+				}
+
+				if (function_with_voice_output_data_called_from_map.contains(function_name))
+				{
+					function_with_voice_output_data_called_from_map[section_stack_data.name].insert(function_name);
 				}
 
 				// ...
@@ -2611,55 +2981,63 @@ namespace GOTHIC_NAMESPACE
 					k++;
 				}
 
+				// ---
+
+				// function_with_voice_output_data_vector_map[section_name].push_back(voice_output_data);
+
 				// for audio
-
-				if (function_name == "AI_OUTPUT" && prepared_argument_vector.size() >= 3)
+				if (function_name == "INFO_ADDCHOICE" && prepared_argument_vector.size() >= 3)
 				{
-					for (auto & [_, audio_data] : audio_data_map)
+					auto info_instance_value = prepared_argument_vector[0].stack_variable.value;
+					auto info_instance_symbol = loc_parser->symtab.table[info_instance_value];
+					std::string info_instance_name = info_instance_symbol->name.ToChar();
+
+					auto dialog_function_value = prepared_argument_vector[2].stack_variable.value;
+					auto dialog_function_symbol = loc_parser->symtab.table[dialog_function_value];
+					std::string dialog_function_name = dialog_function_symbol->name.ToChar();
+
+					if (dialog_data_map.contains(info_instance_name))
 					{
-						if (section_stack_data.name == audio_data.info_information_name)
-						{
-							auto token_dialog_value = prepared_argument_vector[2].stack_variable.value;
-							if (token_dialog_value <= 0)
-								break;
+						dialog_data_map[info_instance_name].info_information_choice_name_set.insert(dialog_function_name);
+					}
+					else
+					{
+						auto dialog_data = DialogData();
+						dialog_data.info_instance_name = info_instance_name;
+						dialog_data.info_information_choice_name_set.insert(dialog_function_name);
 
-							std::string npc_name = "_PLAYER";
-							std::string string_dialog = (const char*)loc_parser->symtab.table[token_dialog_value]->stringdata[0];
+						dialog_data_map[info_instance_name] = dialog_data;
+					}
 
-							if (prepared_argument_vector[0].stack_variable.name == "SELF")
-								npc_name = audio_data.info_npc_class_name;
+					// log << "INFO_ADDCHOICE section_stack_data.name: " << section_stack_data.name << std::endl;
+					// log << "INFO_ADDCHOICE token_symbol: " << token_symbol << std::endl;
+					// log << "INFO_ADDCHOICE token_name: " << token_name << std::endl;
+					// log.flush();
+				}
 
-							dialog_data_map[string_dialog] = npc_name;
+				// log << "CALL FUNCTION IN GAME CODE: " << function_name << std::endl;
+				// log.flush();
 
-							// log << "AI_OUTPUT who talk: " << npc_name << std::endl;
-							// log << "AI_OUTPUT ";
-							// log << prepared_argument_vector[0].stack_variable.name << " ";
-							// log << prepared_argument_vector[1].stack_variable.name << " ";
-							// log << string_dialog << std::endl;
-							// log.flush();
-
-							break;
-						}
+				// for audio
+				if (voice_function_map.contains(function_name))
+				{
+					auto & voice_function = voice_function_map[function_name];
+					if (voice_function.argument_count == argument_count)
+					{
+						manage_voice_function(loc_parser, voice_function, section_stack_data.name,
+							prepared_argument_vector, tria_self_npc_name);
 					}
 				}
 
-				// for audio
-
-				// // manage !!!
-				// if (function_with_translated_argument_map.count(function_name))
-				// {
-				// 	// auto & function_with_translated_argument = function_with_translated_argument_map[function_name];
-				// 	// function_with_translated_argument_add_section(loc_parser, section_stack_data,
-				// 	// 	section_argument_name_vector, function_with_translated_argument,
-				// 	// 	prepared_argument_vector);
-				//
-				// 	void
-				// }
+				// ---
 
 				auto source_data = SourceData();
 				source_data.function_name = function_name;
 				source_data.function_count = function_count;
 				function_with_translated_argument_add_section_v2(loc_parser, section_fwta, source_data, prepared_argument_vector);
+
+				// for audio
+				function_with_voice_add_section(loc_parser, section_fwva, source_data, prepared_argument_vector);
 
 				auto function_with_edit_string_argument = FunctionWithEditStringArgument();
 				if (function_with_edit_string_argument_map.count(function_name)
@@ -2829,22 +3207,21 @@ namespace GOTHIC_NAMESPACE
 						token_symbol = loc_parser->symtab.table[svt_f.stack_variable.value];
 						std::string token_name = token_symbol->name.ToChar();
 
-						if (!audio_data_map.contains(section_stack_data.name))
+						if (!dialog_data_map.contains(section_stack_data.name))
 						{
-							auto audio_data = AudionData();
-							audio_data.info_instance_name = section_stack_data.name;
-							audio_data.info_npc_class_name = token_name;
+							auto dialog_data = DialogData();
+							dialog_data.info_instance_name = section_stack_data.name;
+							dialog_data.info_npc_class_name = token_name;
 
-							audio_data_map[section_stack_data.name] = audio_data;
+							dialog_data_map[section_stack_data.name] = dialog_data;
 						}
 						else
 						{
-							audio_data_map[section_stack_data.name].info_npc_class_name = token_name;
+							dialog_data_map[section_stack_data.name].info_npc_class_name = token_name;
 						}
 
-						// log << "C_INFO.NPC: " << svt_f.stack_variable.to_string() << std::endl;
-						// log << "C_INFO.NPC: " << section_stack_data.name << std::endl;
-						// log << "C_INFO.NPC: " << token_name << std::endl;
+						// log << "C_INFO.NPC, section_stack_data.name: " << section_stack_data.name << std::endl;
+						// log << "C_INFO.NPC, token_name: " << token_name << std::endl;
 						// log.flush();
 					}
 				}
@@ -2868,26 +3245,25 @@ namespace GOTHIC_NAMESPACE
 						token_symbol = loc_parser->symtab.table[svt_f.stack_variable.value];
 						std::string token_name = token_symbol->name.ToChar();
 
-						if (!audio_data_map.contains(section_stack_data.name))
+						if (!dialog_data_map.contains(section_stack_data.name))
 						{
-							auto audion_data = AudionData();
-							audion_data.info_information_name = token_name;
+							auto dialog_data = DialogData();
+							dialog_data.info_information_choice_name_set.insert(token_name);
 
-							audio_data_map[section_stack_data.name] = audion_data;
+							dialog_data_map[section_stack_data.name] = dialog_data;
 						}
 						else
 						{
-							audio_data_map[section_stack_data.name].info_information_name = token_name;
+							dialog_data_map[section_stack_data.name].info_information_choice_name_set.insert(token_name);
 						}
 
-						// log << "C_INFO.INFORMATION: " << svt_f.stack_variable.to_string() << std::endl;
-						// log << "C_INFO.INFORMATION: " << section_stack_data.name << std::endl;
-						// log << "C_INFO.INFORMATION: " << token_name << std::endl;
+						// log << "C_INFO.INFORMATION, section_stack_data.name: " << section_stack_data.name << std::endl;
+						// log << "C_INFO.INFORMATION, token_name: " << token_name << std::endl;
 						// log.flush();
 					}
 				}
 
-				// NO POP???
+				// NO POP coz 1 byte instruction
 
 				token_value = 0;
 				token_symbol = nullptr;
@@ -2902,13 +3278,13 @@ namespace GOTHIC_NAMESPACE
 				if (moved_variable_value_trace_map.count(svt_f.stack_variable.value))
 				{
 					svt_f = moved_variable_value_trace_map[svt_f.stack_variable.value];
-					// stack_log << "[TRACE] found move: " << svt_f.to_string() << std::endl;
+					// log << "[TRACE] found move: " << svt_f.to_string() << std::endl;
 				}
 
 				int64_t value_f = svt_f.stack_variable.value;
 				int64_t value_t = svt_t.stack_variable.value;
 
-				// moved_variable_value_trace_map[value_t] = svt_f;
+				moved_variable_value_trace_map[value_t] = svt_f;
 				// moved_variable_value_trace_stack_vector_map[value_t].push_back(svt_f);
 				// log << "add mov var from: " << svt_f.to_string() << std::endl;
 				// log << "add mov var to: " << svt_t.to_string() << std::endl;
@@ -2922,6 +3298,25 @@ namespace GOTHIC_NAMESPACE
 				// stack_log << "[TRACE] move string from : " << svt_f.to_string() << std::endl;
 				// stack_log << "[TRACE] move string to : " << svt_t.to_string() << std::endl;
 				// stack_log << "[TRACE] moved_variable_value_trace_map now: " << moved_variable_value_trace_map[value_t].to_string() << std::endl;
+
+				// for audio
+				if ((is_section_instance || is_section_prototype) && !is_menu)
+				{
+					if (svt_t.stack_variable.name.substr(0, 5) == "C_SVM")
+					{
+						if (svt_f.stack_variable.value >= 0 && svt_f.stack_variable.value < loc_parser->symtab.table.GetNum())
+						{
+							zCPar_Symbol* symbol = loc_parser->symtab.table[svt_f.stack_variable.value];
+							if (symbol->type == zPAR_TYPE_STRING && symbol->HasFlag(zPAR_FLAG_CONST))
+							{
+								std::string symbol_name = symbol->name.ToChar();
+								std::string symbol_text = symbol->stringdata[0].ToChar();
+
+								dialog_name_npc_name_map[symbol_text] = "_" + section_stack_data.name;
+							}
+						}
+					}
+				}
 
 				// class fields can be change dynamicly in function
 				if (is_section_instance || is_section_prototype || is_section_function)
@@ -3086,11 +3481,27 @@ namespace GOTHIC_NAMESPACE
 
 		function_with_translated_argument_map[section_fwta.name] = section_fwta;
 
+		// for audio
+		if (is_section_function && section_fwva.argument_count > 0)
+		{
+			bool is_valid = false;
+			for (auto & voice_argument: section_fwva.voice_argument_vector)
+			{
+				if (voice_argument.is_source || voice_argument.is_dia)
+				{
+					is_valid = true;
+					break;
+				}
+			}
+			if (is_valid && !voice_function_map.contains(section_fwta.name))
+				voice_function_map[section_fwta.name] = section_fwva;
+		}
+
 		// log << std::endl;
 		// log << std::endl;
     }
 
-	void translate_parser(const zCParser* local_parser, const std::string& virtual_machine_hash)
+	void translate_parser(const zCParser* local_parser, const std::string & virtual_machine_hash)
 	{
 		int64_t min_translate_value = std::stoi(json_settings["min_translate_value"]);
 		std::unordered_map<std::string, uint64_t> translate_count_map;
@@ -3111,8 +3522,8 @@ namespace GOTHIC_NAMESPACE
 
 			for (int j = 0; j < symbol->ele; ++j)
 			{
-				std::string symbol_name = (const char*)symbol->name;
-				std::string symbol_string_data = (const char*)symbol->stringdata[j];
+				std::string symbol_name = symbol->name.ToChar();
+				std::string symbol_string_data = symbol->stringdata[j].ToChar();
 
 				auto& string_entry = empty_string_entry;
 				if (is_menu)
@@ -3199,6 +3610,60 @@ namespace GOTHIC_NAMESPACE
 
 			if (encoding_detection_string.length() > 32 * 8)
 				return;
+		}
+	}
+
+	void setup_dialog_voice(const DialogData & dialog_data, const VoiceOutputData & voice_output_data)
+	{
+		std::string npc_name = "_PLAYER";
+
+		if (voice_output_data.source_variable_name == "HERO")
+		{
+			dialog_name_npc_name_map[voice_output_data.dialog_name] = npc_name; // player
+		}
+		else if (voice_output_data.source_variable_name == "SELF")
+		{
+			if (voice_output_data.tria_npc_name.empty())
+			{
+				npc_name = dialog_data.info_npc_class_name;
+			}
+			else
+			{
+				npc_name = voice_output_data.tria_npc_name;
+			}
+
+			dialog_name_npc_name_map[voice_output_data.dialog_name] = npc_name;
+		}
+		else if (voice_output_data.source_variable_name == "OTHER")
+		{
+			dialog_name_npc_name_map[voice_output_data.dialog_name] = npc_name;
+		}
+	}
+
+	void voice_output_check_recursion(const std::string & function_name, DialogData & dialog_data)
+	{
+		if (voice_output_check_recursion_set.contains(function_name))
+			return;
+
+		voice_output_check_recursion_set.insert(function_name);
+
+		// log << "START CHECK: " << function_name << std::endl;
+		// log << "CHECK [function_with_voice_output_data_vector_map]" << std::endl;
+		if (function_with_voice_output_data_vector_map.contains(function_name))
+		{
+			for (auto & voice_output_data : function_with_voice_output_data_vector_map[function_name])
+			{
+				// log << voice_output_data.to_string() << std::endl;
+				setup_dialog_voice(dialog_data, voice_output_data);
+			}
+		}
+		// log << "CHECK [function_with_voice_output_data_called_from_map]" << std::endl;
+		if (function_with_voice_output_data_called_from_map.contains(function_name))
+		{
+			for (auto & called_func : function_with_voice_output_data_called_from_map[function_name])
+			{
+				voice_output_check_recursion(called_func, dialog_data);
+			}
 		}
 	}
 
@@ -3301,7 +3766,43 @@ namespace GOTHIC_NAMESPACE
 			auto symbol = parser->symtab.table[i];
 			auto virtual_address = reinterpret_cast<int64_t>(symbol->adr);
 
-			// only virtual
+
+			std::string symbol_name = (const char*)symbol->name;
+			bool is_const = symbol->HasFlag(zPAR_FLAG_CONST);
+			bool is_return = symbol->HasFlag(zPAR_FLAG_RETURN);
+			bool is_class_var = symbol->HasFlag(zPAR_FLAG_CLASSVAR);
+			bool is_external = symbol->HasFlag(zPAR_FLAG_EXTERNAL);
+			bool is_merged = symbol->HasFlag(zPAR_FLAG_MERGED);
+			bool is_type_void = symbol->type == zPAR_TYPE_VOID;
+			bool is_type_float = symbol->type == zPAR_TYPE_FLOAT;
+			bool is_type_int = symbol->type == zPAR_TYPE_INT;
+			bool is_type_class = symbol->type == zPAR_TYPE_CLASS;
+			bool is_type_func = symbol->type == zPAR_TYPE_FUNC;
+			bool is_type_prot = symbol->type == zPAR_TYPE_PROTOTYPE;
+			bool is_type_inst = symbol->type == zPAR_TYPE_INSTANCE;
+
+			// log << symbol_name << "\t\t"
+			// 	<< "  virtual_address: " << virtual_address
+			// 	<< ", is_const: " << is_const
+			// 	<< ", is_return: " << is_return
+			// 	<< ", is_class_var: " << is_class_var
+			// 	<< ", is_external: " << is_external
+			// 	<< ", is_merged: " << is_merged
+			// 	<< ", is_type_void: " << is_type_void
+			// 	<< ", is_type_float: " << is_type_float
+			// 	<< ", is_type_int: " << is_type_int
+			// 	<< ", is_type_class: " << is_type_class
+			// 	<< ", is_type_func: " << is_type_func
+			// 	<< ", is_type_prot: " << is_type_prot
+			// 	<< ", is_type_inst: " << is_type_inst
+			// 	<< std::endl;
+			// log.flush();
+
+			// бывает что у них адресс прямо посередине другой функции, хз как это работает - но работает
+			if (is_type_void || is_type_float || is_type_int || is_external)
+				continue;
+
+			// https://github.com/Lehona/LeGo/blob/dev/EngineAdr_G2.d
 			if (virtual_address > 0 && virtual_address < stack_size)
 			{
 				auto stack_data = StackData();
@@ -3356,6 +3857,9 @@ namespace GOTHIC_NAMESPACE
 		uint64_t virtual_address_last = script_address_stack_data_map.rbegin()->first;
 		for (auto & [virtual_address, stack_data] : script_address_stack_data_map)
 		{
+			// log << "iter script_address_stack_data_map: " << virtual_address << ", name: " << stack_data.name << std::endl;
+			// log.flush();
+
 			if (virtual_address_prev > 0)
 			{
 				auto & stack_data_prev = script_address_stack_data_map[virtual_address_prev];
@@ -3380,6 +3884,13 @@ namespace GOTHIC_NAMESPACE
 			// stack_data_prev = stack_data;
 			virtual_address_prev = virtual_address;
 		}
+
+		// for (auto & [_, script_address_stack_data] : script_address_stack_data_map)
+		// {
+		// 	log << "name: " << script_address_stack_data.name
+		// 	<< ", address_begin: " << script_address_stack_data.address_begin
+		// 	<< ", address_end: " << script_address_stack_data.address_end << std::endl;
+		// }
 
 		uint64_t counter = 0;
 		for (auto & [virtual_address, stack_data] : script_address_stack_data_map)
@@ -3440,6 +3951,63 @@ namespace GOTHIC_NAMESPACE
 		}
 
 
+		// function_with_voice_output_data_vector_map
+
+		// for (auto & [function_name, voice_output_data_vector] : function_with_voice_output_data_vector_map)
+		// {
+		// 	log << "function_name: " << function_name << std::endl;
+		// 	for (auto & voice_output_data : voice_output_data_vector)
+		// 	{
+		// 		log << voice_output_data.to_string() << std::endl;
+		// 	}
+		// }
+		//
+		// for (auto & [function_name_from, function_name_called_set] : function_with_voice_output_data_called_from_map)
+		// {
+		// 	for (auto & function_name_called : function_name_called_set)
+		// 	{
+		// 		log << "function_name_from: " << function_name_from << ", function_name_called: " << function_name_called << std::endl;
+		// 	}
+		//
+		// }
+
+		// std::map<std::string, DialogData> dialog_data_map = {};
+
+		// for (auto & [_, voice_output_data_vector] : function_with_voice_output_data_vector_map)
+		// {
+		// 	for (auto & voice_output_data : voice_output_data_vector)
+		// 	{
+		// 		// log << "START ITER [voice_output_data]: " << voice_output_data.to_string() << std::endl;
+		// 	}
+		// }
+
+		// for audio
+		for (auto & [_, dialog_data] : dialog_data_map)
+		{
+			// log << "START ITER [dialog_data]: " << dialog_data.to_string() << std::endl;
+
+			for (auto & info_information_choice_name : dialog_data.info_information_choice_name_set)
+			{
+				voice_output_check_recursion(info_information_choice_name, dialog_data);
+			}
+
+			for (auto & [_, voice_output_data_vector] : function_with_voice_output_data_vector_map)
+			{
+				for (auto & voice_output_data : voice_output_data_vector)
+				{
+					if (dialog_data.info_npc_class_name == voice_output_data.source_variable_name)
+					{
+						dialog_name_npc_name_map[voice_output_data.dialog_name] = voice_output_data.source_variable_name;
+					}
+				}
+			}
+		}
+
+		// for (auto & voice_function : voice_function_map)
+		// {
+		// 	log << "voice_function_map: " << voice_function.second.to_string() << std::endl;
+		// }
+
 		// for (auto & function_with_translated_argument : function_with_translated_argument_map)
 		// {
 		// 	log << "function_with_translated_argument_map: " << function_with_translated_argument.second.to_string() << std::endl;
@@ -3476,6 +4044,74 @@ namespace GOTHIC_NAMESPACE
 		}
 	}
 
+	void parse_message_conversion(const oCMsgConversation* message_conversion, const std::string & dia)
+	{
+		const std::string text = message_conversion->text.ToChar();
+
+		// when hash changed - we have double ou
+		if (ou_data_by_dia_map.contains(dia))
+			return;
+
+		std::string npc;
+		if (dialog_name_npc_name_map.contains(dia))
+			npc = dialog_name_npc_name_map[dia];
+
+		std::string source = dia;
+		remove_broken_symbols(source);
+		source = "[" + source + "]";
+		if (!npc.empty())
+		{
+			source += " " + npc;
+			if (npc_name_map.contains(npc))
+			{
+				const std::string encoded_npc = encode_string(npc_name_map[npc],
+					json_settings["script_encoding"], "utf8");
+				source += ", " + encoded_npc;
+			}
+		}
+
+		auto ou_data = OUData();
+		ou_data.dia = dia;
+		ou_data.text = text;
+		ou_data.source = source;
+
+		ou_data_vector.push_back(ou_data);
+
+		ou_data_by_dia_map[dia] = ou_data_vector.size() - 1;
+		ou_data_by_text_map[text] = ou_data_vector.size() - 1;
+		// ou_data_by_dia_text_map[dia + text] = ou_data_vector.size() - 1;
+	}
+
+	void translate_message_conversion(oCMsgConversation* message_conversion, const std::string & dia)
+	{
+		std::string text = message_conversion->text.ToChar();
+
+		if (text.empty() || dia.empty())
+			return;
+
+		OUData ou_data;
+
+		if (ou_data_by_dia_map.contains(dia))
+		{
+			ou_data = ou_data_vector[ou_data_by_dia_map[dia]];
+		}
+		else
+		{
+			if (ou_data_by_text_map.contains(text))
+				ou_data = ou_data_vector[ou_data_by_text_map[text]];
+		}
+
+		std::string text_translated = ou_data.text_translated;
+		std::string text_translated_encoded;
+
+		if (text_translated.empty())
+			text_translated_encoded = encode_string(text, json_settings["script_encoding"], "utf8");
+		else
+			text_translated_encoded = text_translated;
+
+		message_conversion->text = text_translated_encoded.c_str();
+	}
+
 	void parse_ou(bool is_translate = false)
 	{
 		// steeled from https://github.com/Gratt-5r2/zFont/blob/master/zFont/CharsetDetector.cpp
@@ -3491,60 +4127,21 @@ namespace GOTHIC_NAMESPACE
 				auto atomic_block = block.block->CastTo<zCCSAtomicBlock>();
 				if (atomic_block)
 				{
-					auto message_conversion = atomic_block->command->CastTo<oCMsgConversation>();
-					if (message_conversion)
+					auto message_conversation = atomic_block->command->CastTo<oCMsgConversation>();
+					if (message_conversation)
 					{
-						std::string string = (const char*)message_conversion->text;
+						std::string dia = ou->roleName.ToChar();
+
+						// log << "message_conversion: " << source_ << ", " << string << std::endl;
+						// log.flush();
 
 						if (is_translate)
 						{
-							std::string encoded_translated_string = string;
-							if (ou_string_data.count(string) > 0)
-							{
-								std::string translated_string = ou_string_data[string]["translated_string"];
-								if (translated_string.empty())
-								{
-									encoded_translated_string = encode_string(encoded_translated_string, json_settings["script_encoding"], "utf8");
-								}
-								else
-								{
-									encoded_translated_string = translated_string;
-								}
-							}
-							else
-							{
-								encoded_translated_string = encode_string(encoded_translated_string, json_settings["script_encoding"], "utf8");
-							}
-
-							zSTRING zstr = encoded_translated_string.c_str();
-							message_conversion->text = zstr;
+							translate_message_conversion(message_conversation, dia);
 						}
 						else
 						{
-							if (std::count(ou_string_data_insert_order.begin(), ou_string_data_insert_order.end(), string) <= 0)
-							{
-								std::string npc;
-								std::string source = (const char*)ou->roleName;
-
-								if (dialog_data_map.contains(source))
-									npc = dialog_data_map[source];
-
-								remove_broken_symbols(source);
-								source = "[" + source + "]";
-								if (!npc.empty())
-								{
-									source += " " + npc;
-									if (npc_name_map.contains(npc))
-									{
-										std::string encoded_npc = encode_string(npc_name_map[npc], json_settings["script_encoding"], "utf8");
-										source += ", " + encoded_npc;
-									}
-								}
-
-								ou_string_data_insert_order.push_back(string);
-								ou_string_data[string]["translate_source"] = source; // if same name, other source?
-								ou_string_data[string]["translated_string"] = "";
-							}
+							parse_message_conversion(message_conversation, dia);
 						}
 					}
 				}
@@ -3763,7 +4360,12 @@ namespace GOTHIC_NAMESPACE
 	// script parser and menu parser filled, ou filled
 	void hook_after_game_init_and_before_menu_appear()
 	{
-		// return;
+		if (plugin_ini_data.section_text_enable == false)
+			return;
+
+
+		// log << "hook_after_game_init_and_before_menu_appear" << std::endl;
+
 
 		// std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
@@ -3818,12 +4420,20 @@ namespace GOTHIC_NAMESPACE
 		// // ExitProcess(1);
 		// return;
 
+
+
+
+
+
 		// parse_script();
 		// // parse_ou();
 		// // parse_menu();
-		// write_json(false, virtual_machine_hash);
+		// // write_json(false, virtual_machine_hash);
 		// ExitProcess(1);
 		// return;
+
+
+
 
 
 		// 2. read a translation json file
@@ -3862,7 +4472,7 @@ namespace GOTHIC_NAMESPACE
 		{
 			parse_script();
 			parse_ou();
-			parse_menu();
+			// parse_menu(); ??????????????????????????????
 
 			// json_settings["virtual_machine_hash"] = virtual_machine_hash;
 			if (json_settings["script_encoding"] == "-1")
